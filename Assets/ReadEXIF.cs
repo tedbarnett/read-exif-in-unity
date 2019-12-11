@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using UnityEngine.Networking;
 using UnityEngine.UI;
 
 // Unity 2019 update to TestUnityExif (from https://www.codeproject.com/Articles/47486/Understanding-and-Reading-Exif-Data)
@@ -41,7 +42,7 @@ public class ReadEXIF : MonoBehaviour
 
 	IEnumerator LoadTexture()
 	{
-		yield return StartCoroutine(GetImage(this.imagePath));
+		yield return StartCoroutine(LoadByteArrayIntoTexture(this.imagePath));
 		if (imageHolder)
 		{
 			imageHolder.texture = this.texture;
@@ -54,20 +55,24 @@ public class ReadEXIF : MonoBehaviour
 	/// <summary>
 	/// ExifLib - http://www.codeproject.com/Articles/47486/Understanding-and-Reading-Exif-Data
 	/// </summary>
-	IEnumerator GetImage(string url)
+
+
+IEnumerator LoadByteArrayIntoTexture(string url)
 	{
-		WWW www = new WWW(url);
-		Debug.Log("Fetching image " + url);
-		yield return www;
-		if (!System.String.IsNullOrEmpty(www.error))
-		{
-			Debug.Log(www.error);
-			this.texture = null;
-		}
-		else
-		{
-			Debug.Log("Finished Getting Image -> SIZE: " + www.bytes.Length.ToString());
-			ExifLib.JpegInfo jpi = ExifLib.ExifReader.ReadJpeg(www.bytes, "Sample File");
+	UnityWebRequest www = UnityWebRequest.Get(url);
+	yield return www.SendWebRequest();
+
+	if (www.isNetworkError || www.isHttpError)
+	{
+		Debug.Log(www.error);
+	}
+	else
+	{
+		// retrieve results as binary data
+		byte[] results = www.downloadHandler.data;
+
+			Debug.Log("Finished Getting Image -> SIZE: " + results.Length.ToString());
+			ExifLib.JpegInfo jpi = ExifLib.ExifReader.ReadJpeg(results, "Sample File");
 
 
 			double[] Latitude = jpi.GpsLatitude;
@@ -89,13 +94,19 @@ public class ReadEXIF : MonoBehaviour
 			ExifData.text = ExifData.text + "\n" + "Software: " + jpi.Software;
 			ExifData.text = ExifData.text + "\n" + "Orientation: " + orientationString;
 			ExifData.text = ExifData.text + "</color>";
-			newTexture = www.texture;
+
+			Texture2D tex = new Texture2D(2, 2);
+			tex.LoadImage(results);
+			newTexture = tex;
+
 			// Not sure why, but many images come in flipped 180 degrees
 			//newTexture = rotateTexture(newTexture, true); // Rotate clockwise 90 degrees
 			//newTexture = rotateTexture(newTexture, true); // Rotate clockwise 90 degrees (again, to flip it)
 			this.texture = newTexture;
 		}
-	}
+}
+
+
 
 	public void CorrectRotation()
 	{
