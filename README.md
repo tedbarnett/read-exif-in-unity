@@ -8,4 +8,4 @@ This simple Unity 2019 project opens JPG files from a URL (or file path) and dis
 
 Screenshot below...
 
-![Screenshot](ReadEXIF-Unity-Screenshot.jpg)
+![Screenshot](ReadEXIF-Unity-Screenshot.JPG)
